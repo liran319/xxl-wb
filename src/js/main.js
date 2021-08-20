@@ -564,6 +564,12 @@ function initWhiteboard() {
                 btnsMini = !btnsMini;
             });
 
+        $('#insert-iframe')
+            .off('click')
+            .click(function() {
+
+            });
+
         // load json to whiteboard
         $("#myFile").on("change", function () {
             var file = document.getElementById("myFile").files[0];

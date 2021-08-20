@@ -93,6 +93,9 @@ const whiteboard = {
         _this.textContainer = $(
             '<div class="textcontainer" style="position: absolute; left:0px; top:0; height: 100%; width: 100%; cursor:text;"></div>'
         );
+        _this.iframeContainer = $(
+            '<div class="iframecontainer" style="position: absolute; left:0px; top:0; height: 100%; width: 100%;"></div>'
+        );
         // mouse overlay for draw callbacks
         _this.mouseOverlay = $(
             '<div id="mouseOverlay" style="cursor:none; position: absolute; left:0px; top:0; height: 100%; width: 100%;"></div>'
@@ -106,6 +109,7 @@ const whiteboard = {
             .append(_this.dropIndicator)
             .append(_this.cursorContainer)
             .append(_this.textContainer)
+            .append(_this.iframeContainer)
             .append(_this.mouseOverlay);
 
         // render newly added icons
@@ -124,6 +128,7 @@ const whiteboard = {
             _this.canvas.height = $(window).height(); // Set new canvas height
             _this.drawBuffer = [];
             _this.textContainer.empty();
+            _this.iframeContainer.empty();
             _this.loadData(dbCp); // draw old content in
         });
 
@@ -417,7 +422,29 @@ const whiteboard = {
             if (ReadOnlyService.readOnlyActive) return;
             _this.triggerMouseOver();
         });
-
+        _this.iframeContainer.on("click", function (e) {
+            const currentPos = Point.fromEvent(e);
+            if (_this.tool === 'insertiframe') {
+                var src = window.prompt('请输入要插入的iframe url')
+                const iframeId = "iframe-" + +new Date();
+                _this.sendFunction({
+                    t: "addIframe",
+                    d: [
+                        src,
+                        currentPos.x,
+                        currentPos.y,
+                        iframeId,
+                    ]
+                });
+                _this.addIframe(
+                    src,
+                    currentPos.x,
+                    currentPos.y,
+                    iframeId,
+                );
+                return;
+            }
+        }),
         // On text container click (Add a new textbox)
         _this.textContainer.on("click", function (e) {
             const currentPos = Point.fromEvent(e);
@@ -905,6 +932,77 @@ const whiteboard = {
             }
         });
     },
+    addIframe(
+        src = '',
+        left,
+        top,
+        iframeId
+    ) {
+        var _this = this;
+        var iframeBox = $(
+            '<iframe id="' + iframeId + '"' +
+                'class="' + 'iframeBox' + '"' +
+                'style="position: absolute;width: 375px;height: 600px;background-color: white;top: ' + top + 'px;left: ' + left + 'px;"' +
+                'src="' + src + '"></iframe>'
+        )
+        _this.latestActiveIframeBoxId = iframeId;
+        iframeBox.click(function (e) {
+            e.preventDefault();
+            _this.latestActiveIframeBoxId = iframeId;
+            return false;
+        });
+        iframeBox.on("mousemove touchmove", function (e) {
+            e.preventDefault();
+            if (_this.imgDragActive) {
+                return;
+            }
+            var iframeBoxPosition = iframeBox.position();
+            var currX = e.offsetX + iframeBoxPosition.left;
+            var currY = e.offsetY + iframeBoxPosition.top;
+            if ($(e.target).hasClass("removeIcon")) {
+                currX += iframeBox.width() - 4;
+            }
+
+            const newPointerPosition = new Point(currX, currY);
+
+            ThrottlingService.throttle(newPointerPosition, () => {
+                _this.lastPointerPosition = newPointerPosition;
+                _this.sendFunction({
+                    t: "cursor",
+                    event: "move",
+                    d: [newPointerPosition.x, newPointerPosition.y],
+                    username: _this.settings.username,
+                });
+            });
+        });
+        this.textContainer.append(iframeBox);
+        iframeBox.draggable({
+            handle: ".moveIcon",
+            stop: function () {
+                var iframeBoxPosition = iframeBox.position();
+                _this.sendFunction({
+                    t: "setIframeboxPosition",
+                    d: [txId, iframeBoxPosition.top, iframeBoxPosition.left],
+                });
+            },
+            drag: function () {
+                var iframeBoxPosition = iframeBox.position();
+                _this.sendFunction({
+                    t: "setIframeboxPosition",
+                    d: [txId, iframeBoxPosition.top, iframeBoxPosition.left],
+                });
+            },
+        });
+        iframeBox
+            .find(".removeIcon")
+            .off("click")
+            .click(function (e) {
+                $("#" + txId).remove();
+                _this.sendFunction({ t: "removeIframebox", d: [txId] });
+                e.preventDefault();
+                return false;
+            });
+    },
     addTextBox(
         textcolor,
         textboxBackgroundColor,
@@ -1135,6 +1233,8 @@ const whiteboard = {
         if (this.tool === "text" || this.tool === "stickynote") {
             $(".textBox").addClass("active");
             this.textContainer.appendTo($(whiteboardContainer)); //Bring textContainer to the front
+        } else if (this.tool === "insertiframe") {
+            this.iframeContainer.appendTo($(whiteboardContainer)); //Bring textContainer to the front
         } else {
             $(".textBox").removeClass("active");
             this.mouseOverlay.appendTo($(whiteboardContainer));
@@ -1142,6 +1242,7 @@ const whiteboard = {
         this.refreshCursorAppearance();
         this.mouseOverlay.find(".xCanvasBtn").click();
         this.latestActiveTextBoxId = null;
+        this.latestActiveIframeBoxId = null;
     },
     setDrawColor(color) {
         var _this = this;

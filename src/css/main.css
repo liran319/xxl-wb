@@ -79,8 +79,17 @@ button::-moz-focus-inner {
 
 /* Add a background color on hover */
 #toolbar {
-    bottom: 10px;
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
     overflow: auto;
+    background-color: #c0c0c0;
+    padding: 10px;
+    width: 60px;
+}
+#toolbar::-webkit-scrollbar {
+    width: 0;
 }
 .btn-group button:hover {
     background-color: #9a9a9a;

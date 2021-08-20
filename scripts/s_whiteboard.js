@@ -98,6 +98,7 @@ module.exports = {
                 "recSelect",
                 "eraseRec",
                 "addTextBox",
+                "addIframe",
                 "setTextboxText",
                 "removeTextbox",
                 "setTextboxPosition",
