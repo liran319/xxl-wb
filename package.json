@@ -6,23 +6,14 @@
   "directories": {},
   "scripts": {
     "build": "webpack --config config/webpack.build.js",
-    "start:dev": "apidoc -i scripts/ -o ./public/apidoc/ && node scripts/server.js --mode=development",
+    "start:dev": "node scripts/server.js --mode=development",
     "start:prod": "npm run build && npm run start",
-    "start": "apidoc -i scripts/ -o ./dist/apidoc/ && node scripts/server.js --mode=production",
+    "start": "node scripts/server.js --mode=production",
     "test": "jest",
     "pretty-quick": "pretty-quick",
     "format": "prettier --write .",
     "style": "prettier --check ."
   },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/cracker0dks/whiteboard"
-  },
-  "keywords": [
-    "XXL",
-    "whiteboard",
-    "lightweight"
-  ],
   "husky": {
     "hooks": {
       "pre-commit": "pretty-quick --staged"
@@ -30,7 +21,6 @@
   },
   "dependencies": {
     "ajv": "6.12.2",
-    "apidoc": "^0.26.0",
     "dompurify": "^2.2.8",
     "express": "4.*",
     "formidable": "1.*",
